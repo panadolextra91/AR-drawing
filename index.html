@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>AR Hand Drawing</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main id="app">
+      <div id="video-container">
+        <video id="webcam" autoplay playsinline></video>
+        <canvas id="draw-canvas"></canvas>
+        <div id="status-overlay">
+          <span id="mode-label">Mode: idle</span>
+          <span id="fps-label">FPS: --</span>
+        </div>
+        <div id="error-overlay" hidden></div>
+      </div>
+    </main>
+    <!-- MediaPipe Hands CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+    <script src="./main.js"></script>
+  </body>
+  </html>
+
+
