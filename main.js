@@ -22,6 +22,11 @@ let hands = null;
 let handsResults = null;
 let handsProcessing = false;
 
+// TensorFlow.js model state
+let gestureModel = null;
+let labelMapping = null;
+let modelLoaded = false;
+
 async function initWebcam() {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
@@ -50,6 +55,39 @@ async function initWebcam() {
   }
 }
 
+async function loadGestureModel() {
+  try {
+    // Load label mapping
+    const mappingResponse = await fetch("./model/label_mapping.json");
+    labelMapping = await mappingResponse.json();
+    console.log("Label mapping loaded:", labelMapping);
+
+    // Load TensorFlow.js model (Layers format)
+    const modelPath = "./model/tfjs_model/model.json";
+    try {
+      gestureModel = await tf.loadLayersModel(modelPath);
+      console.log(`✅ Loaded ML model successfully from ${modelPath}`);
+      modelLoadedSuccessfully = true;
+    } catch (e) {
+      console.error(`Failed to load model from ${modelPath}:`, e);
+      throw e;
+    }
+    
+    if (!modelLoadedSuccessfully) {
+      throw new Error("Could not load model from any path");
+    }
+    
+    modelLoaded = true;
+    console.log("Gesture model loaded successfully!");
+  } catch (err) {
+    console.error("Failed to load gesture model:", err);
+    console.warn("⚠️  ML model not available - using rule-based gesture detection");
+    console.warn("This is normal if the model hasn't been converted yet.");
+    console.warn("The app will work fine with rule-based detection!");
+    modelLoaded = false;
+  }
+}
+
 function initHands() {
   if (typeof Hands === "undefined") {
     showError(
@@ -73,6 +111,9 @@ function initHands() {
   hands.onResults((results) => {
     handsResults = results;
   });
+
+  // Load gesture model
+  loadGestureModel();
 
   requestAnimationFrame(frameLoop);
 }
@@ -125,12 +166,61 @@ function distance2D(a, b) {
   return Math.hypot(dx, dy);
 }
 
-// Returns high-level gesture name, independent of drawing/erasing mode.
-// 'drawPose'  - index up, others down (pointing)
-// 'erasePose' - all fingers down (fist)
-// 'pinch'     - thumb and index tips close together
-// 'none'      - anything else
-function classifyGesture(landmarks) {
+// Extract features from landmarks (63 features: 21 landmarks × 3 coords)
+function extractFeatures(landmarks) {
+  const features = [];
+  for (const landmark of landmarks) {
+    features.push(landmark.x, landmark.y, landmark.z || 0);
+  }
+  return features;
+}
+
+// Classify gesture using trained model or fallback to rule-based
+async function classifyGesture(landmarks) {
+  // Use trained model if available
+  if (modelLoaded && gestureModel && labelMapping) {
+    try {
+      // Extract features
+      const features = extractFeatures(landmarks);
+      
+      // Convert to tensor
+      const inputTensor = tf.tensor2d([features]);
+      
+      // Predict
+      const prediction = gestureModel.predict(inputTensor);
+      const probabilities = await prediction.data();
+      
+      // Clean up tensors
+      inputTensor.dispose();
+      prediction.dispose();
+      
+      // Get predicted class index
+      const predictedIndex = probabilities.indexOf(Math.max(...probabilities));
+      const confidence = probabilities[predictedIndex];
+      
+      // Map index to gesture name
+      const gestureName = labelMapping[predictedIndex];
+      
+      // Only use prediction if confidence is high enough
+      if (confidence > 0.6) {
+        // Map model labels to our gesture names
+        if (gestureName === "pointing") return "drawPose";
+        if (gestureName === "pinch") return "pinch";
+        if (gestureName === "open_palm") return "erasePose";
+        if (gestureName === "idle") return "none";
+      }
+    } catch (err) {
+      console.error("Model prediction error:", err);
+      // Fall through to rule-based
+    }
+  }
+  
+  // Fallback to rule-based detection
+  return classifyGestureRuleBased(landmarks);
+}
+
+// Rule-based gesture classification (fallback)
+function classifyGestureRuleBased(landmarks) {
   // Use both vertical position and extension vector length
   const thumbUp = fingerExtension(landmarks, 4, 2) > 0.14;
   const indexUp =
@@ -173,7 +263,7 @@ function classifyGesture(landmarks) {
   return "none";
 }
 
-function interpretHandsResults(results) {
+async function interpretHandsResults(results) {
   if (
     !results ||
     !results.multiHandLandmarks ||
@@ -185,7 +275,7 @@ function interpretHandsResults(results) {
   }
 
   const landmarks = results.multiHandLandmarks[0];
-  const gestureName = classifyGesture(landmarks);
+  const gestureName = await classifyGesture(landmarks);
 
   // Update gesture stability (simple hysteresis)
   if (gestureName === appState.stableGestureName) {
@@ -287,7 +377,7 @@ async function frameLoop(now) {
     handsProcessing = false;
   }
 
-  const { mode, point } = interpretHandsResults(handsResults);
+  const { mode, point } = await interpretHandsResults(handsResults);
   setMode(mode);
 
   if (mode === "drawing" || mode === "erasing") {

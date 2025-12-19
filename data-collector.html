@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Hand Gesture Data Collector</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="./data-collector.css" />
+  </head>
+  <body>
+    <main id="app">
+      <div id="video-container">
+        <video id="webcam" autoplay playsinline></video>
+        <canvas id="overlay-canvas"></canvas>
+        <div id="controls">
+          <h2>Gesture Data Collector</h2>
+          <div id="instructions">
+            <p><strong>Press & hold number keys to auto-collect:</strong></p>
+            <ul>
+              <li><kbd>1</kbd> (hold) - Auto-collect Pointing gesture</li>
+              <li><kbd>2</kbd> (hold) - Auto-collect Pinch gesture</li>
+              <li><kbd>3</kbd> (hold) - Auto-collect Open Palm</li>
+              <li><kbd>4</kbd> (hold) - Auto-collect Idle gesture</li>
+              <li><kbd>Space</kbd> - Pause/Resume recording</li>
+              <li><kbd>E</kbd> - Export data (download JSON)</li>
+              <li><kbd>C</kbd> - Clear all collected data</li>
+            </ul>
+            <p style="margin-top: 10px; font-size: 12px; color: #aaa;">
+              💡 Tip: Hold key for 3-5 seconds to collect ~30-50 samples automatically!
+            </p>
+          </div>
+          <div id="stats">
+            <div class="stat">
+              <span class="label">Pointing:</span>
+              <span id="count-pointing" class="count">0</span>
+            </div>
+            <div class="stat">
+              <span class="label">Pinch:</span>
+              <span id="count-pinch" class="count">0</span>
+            </div>
+            <div class="stat">
+              <span class="label">Open Palm:</span>
+              <span id="count-open_palm" class="count">0</span>
+            </div>
+            <div class="stat">
+              <span class="label">Idle:</span>
+              <span id="count-idle" class="count">0</span>
+            </div>
+            <div class="stat total">
+              <span class="label">Total:</span>
+              <span id="count-total" class="count">0</span>
+            </div>
+          </div>
+          <div id="status">
+            <span id="status-text">Ready - Press 1-4 to start collecting</span>
+          </div>
+          <div id="current-label" class="hidden">
+            Recording: <span id="current-label-name"></span>
+          </div>
+        </div>
+        <div id="error-overlay" hidden></div>
+      </div>
+    </main>
+    <!-- MediaPipe Hands CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+    <script src="./data-collector.js"></script>
+  </body>
+</html>
+

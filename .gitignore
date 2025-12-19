@@ -1,0 +1,47 @@
+# Model files (large, should be trained/generated)
+model/keras_model.keras
+model/tfjs_model/
+model/*.keras
+model/*.h5
+model/*.pb
+
+# Training data (large JSON files)
+*.json
+!package.json
+!package-lock.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
+# Test files
+test_model_load.html
+
+# Keep label mapping (small, needed for app)
+!model/label_mapping.json
+
